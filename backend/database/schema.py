@@ -1,8 +1,77 @@
 ﻿from backend.database.connection import db_connection
 
 
+def migrate_channel_events(conn):
+    columns = {
+        row["name"]
+        for row in conn.execute(
+            "PRAGMA table_info(channel_events)"
+        ).fetchall()
+    }
+
+    # Migrar la tabla anterior, que no identificaba el canal.
+    if columns and "channel_id" not in columns:
+
+        conn.execute("DROP INDEX IF EXISTS idx_channel_events_date")
+
+        conn.execute("""
+            ALTER TABLE channel_events
+            RENAME TO channel_events_legacy
+        """)
+
+        conn.execute("""
+            CREATE TABLE channel_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_id INTEGER NOT NULL,
+                telegram_event_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL
+                    CHECK(event_type IN ('entry','exit')),
+                telegram_user_id INTEGER NOT NULL,
+                first_name TEXT,
+                username TEXT,
+                event_at TEXT NOT NULL,
+                recorded_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                ),
+                UNIQUE(channel_id, telegram_event_id)
+            )
+        """)
+
+        conn.execute("""
+            INSERT INTO channel_events (
+                channel_id,
+                telegram_event_id,
+                event_type,
+                telegram_user_id,
+                first_name,
+                username,
+                event_at,
+                recorded_at
+            )
+            SELECT
+                0,
+                telegram_event_id,
+                event_type,
+                telegram_user_id,
+                first_name,
+                username,
+                event_at,
+                recorded_at
+            FROM channel_events_legacy
+        """)
+
+        conn.execute("DROP TABLE channel_events_legacy")
+
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_channel_events_date
+        ON channel_events(channel_id, event_at)
+    """)
+
+
 def init_db():
+
     with db_connection() as conn:
+
         conn.execute("PRAGMA journal_mode = WAL")
 
         conn.executescript("""
@@ -43,7 +112,8 @@ def init_db():
 
             CREATE TABLE IF NOT EXISTS channel_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                telegram_event_id INTEGER NOT NULL UNIQUE,
+                channel_id INTEGER NOT NULL,
+                telegram_event_id INTEGER NOT NULL,
                 event_type TEXT NOT NULL
                     CHECK(event_type IN ('entry','exit')),
                 telegram_user_id INTEGER NOT NULL,
@@ -52,11 +122,16 @@ def init_db():
                 event_at TEXT NOT NULL,
                 recorded_at TEXT NOT NULL DEFAULT (
                     strftime('%Y-%m-%dT%H:%M:%fZ','now')
-                )
+                ),
+                UNIQUE(channel_id, telegram_event_id)
             );
 
-            CREATE INDEX IF NOT EXISTS idx_channel_events_date
-            ON channel_events(event_at);
+            CREATE TABLE IF NOT EXISTS event_cursors (
+                channel_id INTEGER PRIMARY KEY,
+                last_event_id INTEGER NOT NULL DEFAULT 0,
+                history_backfill_completed INTEGER NOT NULL DEFAULT 0,
+                last_sync_at TEXT
+            );
 
             CREATE TABLE IF NOT EXISTS monitored_channel (
                 id INTEGER PRIMARY KEY CHECK(id = 1),
@@ -114,3 +189,5 @@ def init_db():
             INSERT OR IGNORE INTO monitored_channel (id)
             VALUES (1);
         """)
+
+        migrate_channel_events(conn)

@@ -9,41 +9,44 @@ router = APIRouter(
 )
 
 
-def get_userbot_status(conn):
+def get_runtime_status(conn, component):
 
-    runtime = conn.execute("""
+    row = conn.execute("""
         SELECT status, last_heartbeat_at
         FROM system_runtime
-        WHERE component = 'userbot'
-    """).fetchone()
+        WHERE component = ?
+    """, (component,)).fetchone()
 
-    if runtime is None:
+    if row is None:
         return "not_configured"
 
-    status = runtime["status"]
+    status = row["status"]
 
-    if status not in ("running", "reconnecting"):
-        return status
+    if status in ("running", "reconnecting"):
 
-    heartbeat = runtime["last_heartbeat_at"]
+        heartbeat = row["last_heartbeat_at"]
 
-    if not heartbeat:
-        return "offline"
+        if not heartbeat:
+            return "offline"
 
-    fresh = conn.execute("""
-        SELECT CASE
-            WHEN julianday(?) >= julianday('now', '-90 seconds')
-            THEN 1 ELSE 0
-        END
-    """, (heartbeat,)).fetchone()[0]
+        fresh = conn.execute("""
+            SELECT CASE
+                WHEN julianday(?) >= julianday('now', '-90 seconds')
+                THEN 1 ELSE 0
+            END
+        """, (heartbeat,)).fetchone()[0]
 
-    return status if fresh else "offline"
+        if not fresh:
+            return "offline"
+
+    return status
 
 
 @router.get("/summary")
 def get_dashboard_summary(
     admin: dict = Depends(require_admin)
 ):
+
     with db_connection() as conn:
 
         channel = conn.execute("""
@@ -52,39 +55,58 @@ def get_dashboard_summary(
             WHERE id = 1
         """).fetchone()
 
-        userbot_status = get_userbot_status(conn)
+        userbot_status = get_runtime_status(
+            conn, "userbot"
+        )
 
-        metrics = conn.execute("""
-            SELECT
-                COALESCE(SUM(
-                    CASE WHEN event_type = 'entry'
-                    THEN 1 ELSE 0 END
-                ), 0) AS entries,
+        collector_status = get_runtime_status(
+            conn, "event_collector"
+        )
 
-                COALESCE(SUM(
-                    CASE WHEN event_type = 'exit'
-                    THEN 1 ELSE 0 END
-                ), 0) AS exits
+        channel_id = (
+            channel["telegram_channel_id"]
+            if channel else None
+        )
 
-            FROM channel_events
-            WHERE date(event_at) = date('now')
-        """).fetchone()
+        if channel_id is not None:
 
-        trend_rows = conn.execute("""
-            SELECT
-                date(event_at) AS day,
+            metrics = conn.execute("""
+                SELECT
+                    COALESCE(SUM(
+                        CASE WHEN event_type = 'entry'
+                        THEN 1 ELSE 0 END
+                    ), 0) AS entries,
 
-                SUM(CASE WHEN event_type = 'entry'
-                    THEN 1 ELSE 0 END) AS entries,
+                    COALESCE(SUM(
+                        CASE WHEN event_type = 'exit'
+                        THEN 1 ELSE 0 END
+                    ), 0) AS exits
 
-                SUM(CASE WHEN event_type = 'exit'
-                    THEN 1 ELSE 0 END) AS exits
+                FROM channel_events
+                WHERE channel_id = ?
+                  AND date(event_at) = date('now')
+            """, (channel_id,)).fetchone()
 
-            FROM channel_events
-            WHERE date(event_at) >= date('now', '-6 days')
-            GROUP BY date(event_at)
-            ORDER BY day ASC
-        """).fetchall()
+            trend_rows = conn.execute("""
+                SELECT
+                    date(event_at) AS day,
+
+                    SUM(CASE WHEN event_type = 'entry'
+                        THEN 1 ELSE 0 END) AS entries,
+
+                    SUM(CASE WHEN event_type = 'exit'
+                        THEN 1 ELSE 0 END) AS exits
+
+                FROM channel_events
+                WHERE channel_id = ?
+                  AND date(event_at) >= date('now', '-6 days')
+                GROUP BY date(event_at)
+                ORDER BY day ASC
+            """, (channel_id,)).fetchall()
+
+        else:
+            metrics = {"entries": 0, "exits": 0}
+            trend_rows = []
 
         recent = conn.execute("""
             SELECT id, category, severity, message, created_at
@@ -96,15 +118,16 @@ def get_dashboard_summary(
         entries = int(metrics["entries"])
         exits = int(metrics["exits"])
 
-        channel_configured = (
-            channel is not None
-            and channel["telegram_channel_id"] is not None
-        )
+        channel_configured = channel_id is not None
 
         if not channel_configured:
             tracking_status = "not_configured"
-        elif userbot_status == "running":
+        elif not channel["enabled"]:
+            tracking_status = "paused"
+        elif collector_status == "running":
             tracking_status = "active"
+        elif collector_status == "error":
+            tracking_status = "error"
         else:
             tracking_status = "waiting_for_userbot"
 
@@ -112,12 +135,12 @@ def get_dashboard_summary(
             "userbot": {
                 "status": userbot_status
             },
+            "event_collector": {
+                "status": collector_status
+            },
             "channel": {
                 "configured": channel_configured,
-                "telegram_channel_id": (
-                    channel["telegram_channel_id"]
-                    if channel else None
-                ),
+                "telegram_channel_id": channel_id,
                 "title": channel["title"] if channel else None,
                 "enabled": bool(channel["enabled"]) if channel else False
             },
@@ -147,7 +170,9 @@ def get_recent_activity(
     limit: int = Query(default=20, ge=1, le=100),
     admin: dict = Depends(require_admin)
 ):
+
     with db_connection() as conn:
+
         rows = conn.execute("""
             SELECT id, category, severity, message, created_at
             FROM activity_logs

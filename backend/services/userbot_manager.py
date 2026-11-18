@@ -9,6 +9,7 @@ from telethon.sessions import StringSession
 
 from backend.config import API_ID, API_HASH, SESSION
 from backend.database.connection import db_connection
+from backend.services.event_collector import EventCollector
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,10 @@ class UserbotManager:
         self._client = None
         self._runner_task = None
         self._heartbeat_task = None
+
+        self._collector = None
+        self._collector_task = None
+
         self._lock = asyncio.Lock()
         self._stopping = False
 
@@ -111,13 +116,33 @@ class UserbotManager:
             logger.exception("Could not save userbot activity log")
 
     def initialize(self):
-        """Actualiza el estado al iniciar FastAPI."""
 
         self._status = (
             "stopped" if self.is_configured else "not_configured"
         )
 
-        self._write_runtime(self._status, heartbeat=False)
+        self._write_runtime(self._status)
+
+        # Evita mostrar un recolector activo después de
+        # un cierre inesperado del servidor.
+        with db_connection() as conn:
+            conn.execute("""
+                INSERT INTO system_runtime (
+                    component,
+                    status,
+                    last_heartbeat_at,
+                    details_json
+                )
+                VALUES (
+                    'event_collector',
+                    'stopped',
+                    NULL,
+                    '{}'
+                )
+                ON CONFLICT(component) DO UPDATE SET
+                    status = 'stopped',
+                    last_heartbeat_at = NULL
+            """)
 
     def get_status(self):
 
@@ -125,19 +150,71 @@ class UserbotManager:
             self._client and self._client.is_connected()
         )
 
+        try:
+            with db_connection() as conn:
+                row = conn.execute("""
+                    SELECT status, last_heartbeat_at
+                    FROM system_runtime
+                    WHERE component = 'event_collector'
+                """).fetchone()
+
+            collector_status = (
+                row["status"] if row else "not_configured"
+            )
+
+        except Exception:
+            collector_status = "unknown"
+
         return {
             "status": self._status,
             "configured": self.is_configured,
             "connected": connected,
             "account": self._account,
-            "last_heartbeat_at": self._last_heartbeat_at
+            "last_heartbeat_at": self._last_heartbeat_at,
+            "event_collector": {
+                "status": collector_status
+            }
         }
+
+    async def _shutdown_collector(self, final_status=None):
+
+        collector = self._collector
+        task = self._collector_task
+
+        if collector:
+            collector.stop()
+
+        if task and task is not asyncio.current_task():
+
+            if not task.done():
+                task.cancel()
+
+            await asyncio.gather(
+                task,
+                return_exceptions=True
+            )
+
+        self._collector = None
+        self._collector_task = None
+
+        if collector and final_status:
+
+            try:
+                collector.set_runtime_status(
+                    final_status,
+                    getattr(collector, "_channel_id", None)
+                )
+            except Exception:
+                logger.exception(
+                    "Could not update collector final status"
+                )
 
     async def start(self):
 
         async with self._lock:
 
             if self._client is not None:
+
                 if self._client.is_connected():
                     return self.get_status()
 
@@ -146,6 +223,7 @@ class UserbotManager:
                 )
 
             if not self.is_configured:
+
                 self._status = "not_configured"
                 self._write_runtime(self._status)
 
@@ -160,6 +238,7 @@ class UserbotManager:
             client = None
 
             try:
+
                 client = self.client_factory(
                     StringSession(self.session),
                     int(self.api_id),
@@ -198,23 +277,46 @@ class UserbotManager:
                     heartbeat=True
                 )
 
+                # Iniciar el recolector con el mismo cliente
+                # autenticado que utiliza el userbot.
+                self._collector = EventCollector(client)
+
+                self._collector_task = asyncio.create_task(
+                    self._collector.run(),
+                    name="telegram-event-collector"
+                )
+
                 self._heartbeat_task = asyncio.create_task(
-                    self._heartbeat_loop(client)
+                    self._heartbeat_loop(client),
+                    name="telegram-userbot-heartbeat"
                 )
 
                 self._runner_task = asyncio.create_task(
-                    self._run_client(client)
+                    self._run_client(client),
+                    name="telegram-userbot-runner"
                 )
 
                 self._write_log(
                     "INFO",
-                    "Userbot connected successfully",
+                    "Userbot connected and event collector started",
                     {"account_id": me.id}
                 )
 
                 return self.get_status()
 
             except Exception as exc:
+
+                await self._shutdown_collector("offline")
+
+                heartbeat_task = self._heartbeat_task
+                self._heartbeat_task = None
+
+                if heartbeat_task:
+                    heartbeat_task.cancel()
+                    await asyncio.gather(
+                        heartbeat_task,
+                        return_exceptions=True
+                    )
 
                 if client is not None:
                     try:
@@ -223,7 +325,9 @@ class UserbotManager:
                         pass
 
                 self._client = None
+                self._runner_task = None
                 self._account = None
+
                 self._status = "error"
 
                 self._write_runtime(
@@ -247,12 +351,14 @@ class UserbotManager:
     async def _heartbeat_loop(self, client):
 
         try:
+
             while self._client is client and not self._stopping:
 
-                if client.is_connected():
-                    self._status = "running"
-                else:
-                    self._status = "reconnecting"
+                self._status = (
+                    "running"
+                    if client.is_connected()
+                    else "reconnecting"
+                )
 
                 self._write_runtime(
                     self._status,
@@ -285,11 +391,14 @@ class UserbotManager:
             if self._client is client and not self._stopping:
 
                 self._status = "error" if error else "offline"
+
                 self._client = None
+                self._account = None
+
+                await self._shutdown_collector("offline")
 
                 heartbeat_task = self._heartbeat_task
                 self._heartbeat_task = None
-                self._runner_task = None
 
                 if heartbeat_task:
                     heartbeat_task.cancel()
@@ -298,6 +407,8 @@ class UserbotManager:
                         return_exceptions=True
                     )
 
+                self._runner_task = None
+
                 self._write_runtime(
                     self._status,
                     heartbeat=False
@@ -305,7 +416,7 @@ class UserbotManager:
 
                 self._write_log(
                     "ERROR" if error else "WARNING",
-                    "Userbot disconnected",
+                    "Userbot disconnected unexpectedly",
                     {
                         "error_type": (
                             type(error).__name__ if error else None
@@ -320,8 +431,10 @@ class UserbotManager:
             self._stopping = True
 
             client = self._client
-            heartbeat_task = self._heartbeat_task
             runner_task = self._runner_task
+            heartbeat_task = self._heartbeat_task
+
+            await self._shutdown_collector("stopped")
 
             if heartbeat_task:
                 heartbeat_task.cancel()
@@ -331,12 +444,14 @@ class UserbotManager:
                 )
 
             if client is not None:
+
                 try:
                     await client.disconnect()
                 except Exception:
                     logger.exception("Error disconnecting userbot")
 
             if runner_task and runner_task is not asyncio.current_task():
+
                 await asyncio.gather(
                     runner_task,
                     return_exceptions=True
@@ -345,8 +460,8 @@ class UserbotManager:
             was_running = client is not None
 
             self._client = None
-            self._heartbeat_task = None
             self._runner_task = None
+            self._heartbeat_task = None
             self._account = None
 
             self._status = (
@@ -361,7 +476,7 @@ class UserbotManager:
             if was_running:
                 self._write_log(
                     "INFO",
-                    "Userbot stopped manually"
+                    "Userbot and event collector stopped manually"
                 )
 
             self._stopping = False
