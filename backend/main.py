@@ -1,17 +1,27 @@
+﻿from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from backend.config import APP_NAME, APP_VERSION
+from backend.database.schema import init_db
+from backend.api.health import router as health_router
+from backend.api.auth import router as auth_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
 app = FastAPI(
-    title="Telegram Control Center",
-    version="0.1.0",
+    title=APP_NAME,
+    version=APP_VERSION,
     docs_url=None,
     redoc_url=None,
-    openapi_url=None
+    openapi_url=None,
+    lifespan=lifespan
 )
 
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "application": "Telegram Control Center",
-        "version": "0.1.0"
-    }
+app.include_router(health_router)
+app.include_router(auth_router)
