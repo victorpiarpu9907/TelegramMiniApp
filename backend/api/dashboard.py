@@ -10,6 +10,7 @@ router = APIRouter(
 
 
 def get_userbot_status(conn):
+
     runtime = conn.execute("""
         SELECT status, last_heartbeat_at
         FROM system_runtime
@@ -18,6 +19,11 @@ def get_userbot_status(conn):
 
     if runtime is None:
         return "not_configured"
+
+    status = runtime["status"]
+
+    if status not in ("running", "reconnecting"):
+        return status
 
     heartbeat = runtime["last_heartbeat_at"]
 
@@ -31,7 +37,7 @@ def get_userbot_status(conn):
         END
     """, (heartbeat,)).fetchone()[0]
 
-    return runtime["status"] if fresh else "offline"
+    return status if fresh else "offline"
 
 
 @router.get("/summary")
