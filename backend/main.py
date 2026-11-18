@@ -10,21 +10,20 @@ from backend.api.auth import router as auth_router
 from backend.api.dashboard import router as dashboard_router
 from backend.api.automations import router as automations_router
 from backend.api.userbot import router as userbot_router
+from backend.api.channel import router as channel_router
 
 from backend.services.userbot_manager import userbot_manager
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    init_db()
+init_db()
     userbot_manager.initialize()
 
-    try:
+try:
         yield
     finally:
         await userbot_manager.stop()
-
 
 app = FastAPI(
     title=APP_NAME,
@@ -40,3 +39,4 @@ app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(automations_router)
 app.include_router(userbot_router)
+app.include_router(channel_router)
