@@ -4,8 +4,11 @@ from fastapi import FastAPI
 
 from backend.config import APP_NAME, APP_VERSION
 from backend.database.schema import init_db
+
 from backend.api.health import router as health_router
 from backend.api.auth import router as auth_router
+from backend.api.dashboard import router as dashboard_router
+from backend.api.automations import router as automations_router
 
 
 @asynccontextmanager
@@ -25,3 +28,5 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(dashboard_router)
+app.include_router(automations_router)

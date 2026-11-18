@@ -3,7 +3,6 @@
 
 def init_db():
     with db_connection() as conn:
-
         conn.execute("PRAGMA journal_mode = WAL")
 
         conn.executescript("""
@@ -96,6 +95,13 @@ def init_db():
                 enabled INTEGER NOT NULL DEFAULT 1
                     CHECK(enabled IN (0,1)),
                 UNIQUE(category, name)
+            );
+
+            CREATE TABLE IF NOT EXISTS system_runtime (
+                component TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                last_heartbeat_at TEXT,
+                details_json TEXT NOT NULL DEFAULT '{}'
             );
 
             INSERT OR IGNORE INTO automation_settings
