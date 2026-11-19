@@ -27,3 +27,12 @@ DATABASE_PATH = Path(
 
 if not DATABASE_PATH.is_absolute():
     DATABASE_PATH = ROOT_DIR / DATABASE_PATH
+
+CORS_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://127.0.0.1:5500,http://localhost:5500"
+    ).split(",")
+    if origin.strip()
+]

@@ -1,8 +1,14 @@
 ﻿from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from backend.config import APP_NAME, APP_VERSION
+from backend.config import (
+    APP_NAME,
+    APP_VERSION,
+    CORS_ORIGINS
+)
+
 from backend.database.schema import init_db
 
 from backend.api.health import router as health_router
@@ -14,16 +20,18 @@ from backend.api.channel import router as channel_router
 
 from backend.services.userbot_manager import userbot_manager
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-init_db()
+    init_db()
     userbot_manager.initialize()
 
-try:
+    try:
         yield
     finally:
         await userbot_manager.stop()
+
 
 app = FastAPI(
     title=APP_NAME,
@@ -32,6 +40,14 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"]
 )
 
 app.include_router(health_router)

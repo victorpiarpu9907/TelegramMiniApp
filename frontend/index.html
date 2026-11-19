@@ -1,0 +1,527 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#090e19">
+    <meta name="description" content="Telegram Control Center - Panel privado de administración">
+    <title>Telegram Control Center</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
+    <script src="./js/config.js"></script>
+    <script src="./js/api.js" defer></script>
+    <script src="./js/dashboard.js" defer></script>
+    <script src="./js/app.js" defer></script>
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <a href="#" class="brand">
+            <div class="brand-mark">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12L20 4L15 20L11 14L4 12Z"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linejoin="round"/>
+                    <path d="M11 14L20 4"
+                          stroke="currentColor"
+                          stroke-width="1.8"/>
+                </svg>
+            </div>
+
+            <div class="brand-copy">
+                <strong>TELEGRAM</strong>
+                <span>CONTROL CENTER</span>
+            </div>
+        </a>
+
+        <div class="sidebar-section">
+            <span class="nav-label">GENERAL</span>
+
+            <nav class="navigation">
+
+                <button class="nav-item active" data-view="dashboard">
+                    <span class="nav-icon">◈</span>
+                    <span>Dashboard</span>
+                    <span class="nav-indicator"></span>
+                </button>
+
+                <button class="nav-item" data-view="userbot">
+                    <span class="nav-icon">⌘</span>
+                    <span>Userbot</span>
+                </button>
+
+                <button class="nav-item" data-view="statistics">
+                    <span class="nav-icon">▥</span>
+                    <span>Estadísticas</span>
+                </button>
+
+                <button class="nav-item" data-view="automations">
+                    <span class="nav-icon">ϟ</span>
+                    <span>Automatizaciones</span>
+                </button>
+
+                <button class="nav-item" data-view="channel">
+                    <span class="nav-icon">◉</span>
+                    <span>Canal principal</span>
+                </button>
+
+            </nav>
+        </div>
+
+        <div class="sidebar-section">
+            <span class="nav-label">HERRAMIENTAS</span>
+
+            <nav class="navigation">
+
+                <button class="nav-item" data-view="creator">
+                    <span class="nav-icon">＋</span>
+                    <span>Crear canales</span>
+                </button>
+
+                <button class="nav-item" data-view="contacts">
+                    <span class="nav-icon">♙</span>
+                    <span>Contactos</span>
+                </button>
+
+                <button class="nav-item" data-view="activity">
+                    <span class="nav-icon">◷</span>
+                    <span>Historial</span>
+                </button>
+
+            </nav>
+        </div>
+
+        <div class="sidebar-bottom">
+
+            <div class="security-card">
+                <div class="security-indicator"></div>
+                <div>
+                    <strong>Entorno de pruebas</strong>
+                    <span>Acceso privado en preparación</span>
+                </div>
+            </div>
+
+            <div class="profile">
+                <div class="profile-avatar">AD</div>
+
+                <div class="profile-info">
+                    <strong>Administrador</strong>
+                    <span>Propietario</span>
+                </div>
+
+                <span class="profile-menu">•••</span>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <button class="mobile-menu" id="menuToggle" aria-label="Abrir menú">
+                    ☰
+                </button>
+
+                <div class="breadcrumb">
+                    <span>Workspace</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <strong>Dashboard</strong>
+                </div>
+
+            </div>
+
+            <div class="topbar-right">
+
+                <div class="environment-badge">
+                    <span class="environment-dot"></span>
+                    VISTA PREVIA LOCAL
+                </div>
+
+                <div class="topbar-divider"></div>
+
+                <div class="date-display" id="currentDate">
+                    Cargando fecha...
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content-container">
+
+            <!-- PAGE HEADER -->
+
+            <section class="page-heading">
+
+                <div>
+                    <div class="eyebrow">
+                        <span class="eyebrow-line"></span>
+                        CENTRO DE OPERACIONES
+                    </div>
+
+                    <h1>Resumen <span>general.</span></h1>
+
+                    <p>
+                        Controla el funcionamiento de tu ecosistema
+                        de Telegram desde un solo lugar.
+                    </p>
+                </div>
+
+                <div class="heading-actions">
+
+                    <button class="button-secondary" id="refreshButton">
+                        <span>↻</span>
+                        Actualizar
+                    </button>
+
+                    <button class="button-primary" id="connectButton">
+                        <span>ϟ</span>
+                        Conectar userbot
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- SYSTEM STATUS -->
+
+            <section class="system-banner">
+
+                <div class="system-banner-left">
+
+                    <div class="system-icon">
+                        <span class="pulse-ring"></span>
+                        <span class="system-icon-inner">⌘</span>
+                    </div>
+
+                    <div>
+                        <span class="system-overline">ESTADO DEL SISTEMA</span>
+                        <h2>Esperando conexión</h2>
+                        <p>El userbot todavía no está conectado a Telegram.</p>
+                    </div>
+
+                </div>
+
+                <div class="system-banner-right">
+                    <span class="status-dot status-neutral"></span>
+                    <span>Sin conectar</span>
+                </div>
+
+            </section>
+
+
+            <!-- METRICS -->
+
+            <section class="section-block">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Actividad del canal</h2>
+                        <p>Resumen de movimientos y crecimiento.</p>
+                    </div>
+
+                    <span class="period-label">HOY</span>
+                </div>
+
+
+                <div class="metrics-grid">
+
+                    <article class="metric-card">
+
+                        <div class="metric-top">
+                            <span class="metric-label">Miembros actuales</span>
+                            <span class="metric-icon icon-blue">♙</span>
+                        </div>
+
+                        <div class="metric-value">—</div>
+
+                        <div class="metric-footer">
+                            <span class="metric-neutral">Sin datos</span>
+                            <span>Esperando conexión</span>
+                        </div>
+
+                    </article>
+
+
+                    <article class="metric-card">
+
+                        <div class="metric-top">
+                            <span class="metric-label">Entradas de hoy</span>
+                            <span class="metric-icon icon-green">↗</span>
+                        </div>
+
+                        <div class="metric-value">—</div>
+
+                        <div class="metric-footer">
+                            <span class="metric-neutral">Sin datos</span>
+                            <span>Esperando conexión</span>
+                        </div>
+
+                    </article>
+
+
+                    <article class="metric-card">
+
+                        <div class="metric-top">
+                            <span class="metric-label">Salidas de hoy</span>
+                            <span class="metric-icon icon-red">↙</span>
+                        </div>
+
+                        <div class="metric-value">—</div>
+
+                        <div class="metric-footer">
+                            <span class="metric-neutral">Sin datos</span>
+                            <span>Esperando conexión</span>
+                        </div>
+
+                    </article>
+
+
+                    <article class="metric-card">
+
+                        <div class="metric-top">
+                            <span class="metric-label">Balance neto</span>
+                            <span class="metric-icon icon-purple">⌁</span>
+                        </div>
+
+                        <div class="metric-value">—</div>
+
+                        <div class="metric-footer">
+                            <span class="metric-neutral">Sin datos</span>
+                            <span>Esperando conexión</span>
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+            <!-- CHART AND STATUS -->
+
+            <section class="dashboard-grid">
+
+                <article class="panel chart-panel">
+
+                    <div class="panel-heading">
+
+                        <div>
+                            <h2>Evolución de actividad</h2>
+                            <p>Entradas y salidas durante los últimos siete días.</p>
+                        </div>
+
+                        <span class="panel-menu">•••</span>
+
+                    </div>
+
+                    <div class="chart-legend">
+                        <span><i class="legend-dot legend-blue"></i> Entradas</span>
+                        <span><i class="legend-dot legend-purple"></i> Salidas</span>
+                    </div>
+
+                    <div class="chart-empty">
+
+                        <div class="chart-decoration">
+                            <div class="chart-grid-line"></div>
+                            <div class="chart-grid-line"></div>
+                            <div class="chart-grid-line"></div>
+                            <div class="chart-grid-line"></div>
+                        </div>
+
+                        <div class="chart-empty-content">
+                            <div class="empty-chart-icon">▥</div>
+                            <strong>Aún no hay estadísticas</strong>
+                            <span>
+                                Los movimientos aparecerán cuando conectemos
+                                el userbot y configuremos el canal.
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <div class="chart-axis">
+                        <span>Hace 7 días</span>
+                        <span>Hoy</span>
+                    </div>
+
+                </article>
+
+
+                <article class="panel status-panel">
+
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Componentes</h2>
+                            <p>Estado de los servicios principales.</p>
+                        </div>
+                    </div>
+
+                    <div class="component-list">
+
+                        <div class="component-row">
+                            <div class="component-icon">⌘</div>
+                            <div class="component-copy">
+                                <strong>Userbot</strong>
+                                <span>Cliente de Telegram</span>
+                            </div>
+                            <span class="component-status neutral">Pendiente</span>
+                        </div>
+
+                        <div class="component-row">
+                            <div class="component-icon">⌁</div>
+                            <div class="component-copy">
+                                <strong>Recolector</strong>
+                                <span>Entradas y salidas</span>
+                            </div>
+                            <span class="component-status neutral">Pendiente</span>
+                        </div>
+
+                        <div class="component-row">
+                            <div class="component-icon">▤</div>
+                            <div class="component-copy">
+                                <strong>Base de datos</strong>
+                                <span>SQLite</span>
+                            </div>
+                            <span class="component-status ready">Local</span>
+                        </div>
+
+                        <div class="component-row">
+                            <div class="component-icon">◎</div>
+                            <div class="component-copy">
+                                <strong>Canal principal</strong>
+                                <span>Seguimiento</span>
+                            </div>
+                            <span class="component-status neutral">Sin configurar</span>
+                        </div>
+
+                    </div>
+
+                    <div class="status-panel-footer">
+                        <span class="status-dot status-neutral"></span>
+                        <span>Integración con servicios pendiente</span>
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- BOTTOM GRID -->
+
+            <section class="bottom-grid">
+
+                <article class="panel activity-panel">
+
+                    <div class="panel-heading">
+
+                        <div>
+                            <h2>Actividad reciente</h2>
+                            <p>Últimos acontecimientos importantes.</p>
+                        </div>
+
+                        <button class="text-button" data-action="activity">
+                            Ver historial →
+                        </button>
+
+                    </div>
+
+                    <div class="activity-empty">
+                        <div class="activity-empty-icon">◷</div>
+                        <strong>No hay actividad registrada</strong>
+                        <span>
+                            Aquí aparecerán las acciones importantes
+                            y los errores del sistema.
+                        </span>
+                    </div>
+
+                </article>
+
+
+                <article class="panel quick-panel">
+
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Acciones rápidas</h2>
+                            <p>Accede a tus herramientas.</p>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+
+                        <button class="quick-action" data-action="userbot">
+                            <span class="quick-icon quick-blue">⌘</span>
+                            <span>
+                                <strong>Control del userbot</strong>
+                                <small>Conexión y estado</small>
+                            </span>
+                            <span class="quick-arrow">→</span>
+                        </button>
+
+                        <button class="quick-action" data-action="automations">
+                            <span class="quick-icon quick-purple">ϟ</span>
+                            <span>
+                                <strong>Automatizaciones</strong>
+                                <small>Activar y pausar tareas</small>
+                            </span>
+                            <span class="quick-arrow">→</span>
+                        </button>
+
+                        <button class="quick-action" data-action="channel">
+                            <span class="quick-icon quick-green">◎</span>
+                            <span>
+                                <strong>Canal principal</strong>
+                                <small>Configurar seguimiento</small>
+                            </span>
+                            <span class="quick-arrow">→</span>
+                        </button>
+
+                        <button class="quick-action" data-action="creator">
+                            <span class="quick-icon quick-orange">＋</span>
+                            <span>
+                                <strong>Crear canal</strong>
+                                <small>Herramienta de creación</small>
+                            </span>
+                            <span class="quick-arrow">→</span>
+                        </button>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <footer class="app-footer">
+                <span>TELEGRAM CONTROL CENTER</span>
+                <span>Desarrollo privado · Versión 0.1.0</span>
+            </footer>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+</body>
+</html>
+
