@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 (function () {
 
@@ -183,6 +183,10 @@
 
         dashboardSummary() {
             return request("/api/dashboard/summary");
+        },
+
+        statistics(days = 7) {
+            return request(`/api/statistics/summary?days=${days}`);
         },
 
         recentActivity(limit = 20) {

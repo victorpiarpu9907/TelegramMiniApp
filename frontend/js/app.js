@@ -1,9 +1,19 @@
-﻿"use strict";
+"use strict";
 
 const toast = document.getElementById("toast");
 const sidebar = document.getElementById("sidebar");
 
 let toastTimer = null;
+let currentView = "dashboard";
+
+
+const PAGE_NAMES = {
+    dashboard: "Dashboard",
+    userbot: "Control del Userbot",
+    automations: "Automatizaciones",
+    channel: "Canal principal",
+    statistics: "Estadísticas"
+};
 
 
 function showToast(message) {
@@ -23,6 +33,8 @@ function updateDate() {
 
     const element = document.getElementById("currentDate");
 
+    if (!element) return;
+
     element.textContent = new Intl.DateTimeFormat("es", {
         weekday: "short",
         day: "numeric",
@@ -34,14 +46,27 @@ function updateDate() {
 
 function navigateTo(view) {
 
-    if (view !== "dashboard") {
+    const target = document.getElementById(`${view}View`);
+
+    if (!target) {
 
         showToast(
-            "Esta sección se habilitará en la siguiente fase."
+            "Esta sección se habilitará en una próxima fase."
         );
 
         return;
     }
+
+    currentView = view;
+
+    document.querySelectorAll(".view-page").forEach(page => {
+
+        page.classList.toggle(
+            "active",
+            page.dataset.page === view
+        );
+
+    });
 
     document.querySelectorAll(".nav-item").forEach(item => {
 
@@ -52,7 +77,43 @@ function navigateTo(view) {
 
     });
 
+    const breadcrumb = document.querySelector(
+        ".breadcrumb strong"
+    );
+
+    if (breadcrumb) {
+        breadcrumb.textContent = PAGE_NAMES[view] || view;
+    }
+
     sidebar.classList.remove("open");
+
+    if (view === "userbot") {
+        window.UserbotPanel?.refresh().catch(() => {});
+    }
+
+    if (view === "automations") {
+        window.AutomationsPanel?.refresh().catch(() => {});
+    }
+
+    if (view === "channel") {
+        window.ChannelPanel?.refresh().catch(() => {});
+    }
+
+    if (view === "statistics") {
+        window.StatisticsPanel?.refresh().catch(() => {});
+    }
+
+    if (
+        view === "dashboard" &&
+        !window.APP_CONFIG.DEMO_MODE
+    ) {
+
+        window.Dashboard.refresh().catch(error => {
+            showToast(error.message);
+        });
+
+    }
+
 }
 
 
@@ -71,12 +132,21 @@ document.querySelectorAll("[data-action]").forEach(button => {
 
         const action = button.dataset.action;
 
+        const supportedViews = [
+            "userbot",
+            "automations",
+            "channel"
+        ];
+
+        if (supportedViews.includes(action)) {
+            navigateTo(action);
+            return;
+        }
+
         const messages = {
-            userbot: "El control del userbot se habilitará en la siguiente fase.",
-            automations: "El panel de automatizaciones está en desarrollo.",
-            channel: "La configuración del canal está preparada en el backend.",
             creator: "El creador de canales se desarrollará próximamente.",
-            activity: "El historial se conectará con la base de datos."
+            contacts: "La gestión de contactos se desarrollará próximamente.",
+            activity: "El historial se desarrollará próximamente."
         };
 
         showToast(
@@ -92,20 +162,37 @@ document.getElementById("refreshButton").addEventListener(
     "click",
     async () => {
 
-        if (window.APP_CONFIG.DEMO_MODE) {
-
-            showToast(
-                "Estás en vista previa. Los datos reales se activarán al publicar la Mini App."
-            );
-
-            return;
-        }
-
         try {
 
-            await window.Dashboard.refresh();
+            if (currentView === "userbot") {
 
-            showToast("Dashboard actualizado correctamente.");
+                await window.UserbotPanel.refresh();
+
+            } else if (currentView === "automations") {
+
+                await window.AutomationsPanel.refresh();
+
+            } else if (currentView === "channel") {
+
+                await window.ChannelPanel.refresh();
+
+            } else if (currentView === "statistics") {
+                await window.StatisticsPanel.refresh();
+            } else if (window.APP_CONFIG.DEMO_MODE) {
+
+                showToast(
+                    "Estás en vista previa local. No hay datos reales que actualizar."
+                );
+
+                return;
+
+            } else {
+
+                await window.Dashboard.refresh();
+
+            }
+
+            showToast("Información actualizada.");
 
         } catch (error) {
 
@@ -120,11 +207,7 @@ document.getElementById("refreshButton").addEventListener(
 document.getElementById("connectButton").addEventListener(
     "click",
     () => {
-
-        showToast(
-            "El control real del userbot se habilitará después de configurar la cuenta de pruebas."
-        );
-
+        navigateTo("userbot");
     }
 );
 
@@ -153,7 +236,48 @@ document.addEventListener("click", event => {
 });
 
 
+
+// CHANNEL_FORM_SUBMIT_GUARD
+// Evita el envío HTML tradicional del formulario.
+
+document.addEventListener("submit", function(event) {
+
+    if (event.target.id !== "channelForm") {
+        return;
+    }
+
+    event.preventDefault();
+
+    // En modo DEMO solo mostramos una notificación.
+    if (window.APP_CONFIG?.DEMO_MODE === true) {
+
+        showToast(
+            "Modo DEMO: la configuración no se ha guardado en el servidor."
+        );
+
+        return;
+    }
+
+    // Evitar una falsa confirmación si falta el controlador.
+    if (!window.ChannelPanel) {
+
+        showToast(
+            "Error: no se ha cargado el controlador del canal."
+        );
+
+    }
+
+}, true);
 updateDate();
+
+
+if (window.Telegram?.WebApp) {
+
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+
+}
+
 
 if (!window.APP_CONFIG.DEMO_MODE) {
 
@@ -170,6 +294,7 @@ if (!window.APP_CONFIG.DEMO_MODE) {
 
 }
 
+
 console.info(
-    "Telegram Control Center | Frontend inicializado."
+    "Telegram Control Center | Navegación inicializada."
 );

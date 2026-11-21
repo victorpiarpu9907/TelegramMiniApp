@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -11,6 +11,11 @@
     <script src="./js/config.js"></script>
     <script src="./js/api.js" defer></script>
     <script src="./js/dashboard.js" defer></script>
+    <script src="./js/userbot.js" defer></script>
+
+    <script src="./js/automations.js" defer></script>
+    <script src="./js/channel.js" defer></script>
+    <script src="./js/statistics.js" defer></script>
     <script src="./js/app.js" defer></script>
 </head>
 
@@ -163,6 +168,7 @@
 
 
         <div class="content-container">
+            <section class="view-page active" id="dashboardView" data-page="dashboard">
 
             <!-- PAGE HEADER -->
 
@@ -512,6 +518,694 @@
                 <span>TELEGRAM CONTROL CENTER</span>
                 <span>Desarrollo privado · Versión 0.1.0</span>
             </footer>
+            </section>
+
+            <section class="view-page" id="userbotView" data-page="userbot">
+
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow">
+                            <span class="eyebrow-line"></span>
+                            ADMINISTRACIÓN DE TELEGRAM
+                        </div>
+
+                        <h1>Control del <span>Userbot.</span></h1>
+
+                        <p>
+                            Administra la conexión de tu cuenta y supervisa
+                            el recolector de eventos.
+                        </p>
+                    </div>
+
+                    <div class="heading-actions">
+                        <button class="button-secondary" id="userbotRefreshButton">
+                            <span>↻</span>
+                            Actualizar estado
+                        </button>
+                    </div>
+                </section>
+
+
+                <section class="panel userbot-connection-panel">
+
+                    <div class="userbot-connection-top">
+
+                        <div class="userbot-status-main">
+
+                            <div class="userbot-avatar">
+                                <span>⌘</span>
+                            </div>
+
+                            <div class="userbot-status-copy">
+
+                                <span class="system-overline">
+                                    ESTADO DE LA CONEXIÓN
+                                </span>
+
+                                <h2 id="userbotStatusTitle">
+                                    Sin configurar
+                                </h2>
+
+                                <p id="userbotStatusDescription">
+                                    Todavía no se han configurado las credenciales
+                                    de la cuenta de pruebas.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        <div class="userbot-status-badge" id="userbotStatusBadge">
+                            <span class="status-dot status-neutral"></span>
+                            <span>Sin configurar</span>
+                        </div>
+
+                    </div>
+
+                    <div class="userbot-divider"></div>
+
+                    <div class="userbot-actions">
+
+                        <button
+                            class="button-primary"
+                            id="userbotStartButton"
+                            disabled
+                        >
+                            <span>▶</span>
+                            Iniciar userbot
+                        </button>
+
+                        <button
+                            class="button-secondary"
+                            id="userbotStopButton"
+                            disabled
+                        >
+                            <span>■</span>
+                            Detener userbot
+                        </button>
+
+                    </div>
+
+                </section>
+
+
+                <section class="userbot-grid">
+
+                    <article class="panel userbot-info-panel">
+
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Cuenta de Telegram</h2>
+                                <p>Información de la cuenta conectada.</p>
+                            </div>
+
+                            <span class="metric-icon icon-blue">♙</span>
+                        </div>
+
+                        <div class="userbot-account">
+
+                            <div class="userbot-account-avatar" id="userbotAccountAvatar">
+                                ?
+                            </div>
+
+                            <div class="userbot-account-details">
+
+                                <strong id="userbotAccountName">
+                                    Sin conexión
+                                </strong>
+
+                                <span id="userbotAccountUsername">
+                                    Esperando autenticación
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="userbot-detail-list">
+
+                            <div class="userbot-detail-row">
+                                <span>ID de Telegram</span>
+                                <strong id="userbotAccountId">—</strong>
+                            </div>
+
+                            <div class="userbot-detail-row">
+                                <span>Estado de sesión</span>
+                                <strong id="userbotSessionStatus">No configurada</strong>
+                            </div>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="panel userbot-info-panel">
+
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Recolector de eventos</h2>
+                                <p>Seguimiento de entradas y salidas.</p>
+                            </div>
+
+                            <span class="metric-icon icon-green">⌁</span>
+                        </div>
+
+                        <div class="collector-status-card">
+
+                            <div class="collector-status-icon">⌁</div>
+
+                            <div>
+                                <strong id="collectorStatusTitle">
+                                    Pendiente
+                                </strong>
+
+                                <span id="collectorStatusDescription">
+                                    Esperando conexión del Userbot.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="userbot-detail-list">
+
+                            <div class="userbot-detail-row">
+                                <span>Importación histórica</span>
+                                <strong id="collectorHistoryStatus">Pendiente</strong>
+                            </div>
+
+                            <div class="userbot-detail-row">
+                                <span>Intervalo de consulta</span>
+                                <strong>15 segundos</strong>
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                </section>
+
+
+                <section class="panel userbot-heartbeat-panel">
+
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Monitor de conexión</h2>
+                            <p>Supervisión del funcionamiento del proceso.</p>
+                        </div>
+
+                        <span class="metric-icon icon-purple">◷</span>
+                    </div>
+
+                    <div class="heartbeat-grid">
+
+                        <div class="heartbeat-item">
+                            <span>Último heartbeat</span>
+                            <strong id="userbotHeartbeat">Sin registros</strong>
+                        </div>
+
+                        <div class="heartbeat-item">
+                            <span>Frecuencia</span>
+                            <strong>20 segundos</strong>
+                        </div>
+
+                        <div class="heartbeat-item">
+                            <span>Reconexión automática</span>
+                            <strong>Telethon</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <div class="userbot-notice" id="userbotNotice" role="status">
+                    <span class="userbot-notice-icon">ⓘ</span>
+
+                    <div>
+                        <strong>Vista previa local</strong>
+                        <p>
+                            Las acciones reales estarán disponibles después
+                            de configurar la cuenta de pruebas y abrir la
+                            aplicación desde Telegram.
+                        </p>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <section class="view-page" id="automationsView" data-page="automations">
+
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow">
+                            <span class="eyebrow-line"></span>
+                            MOTOR DE AUTOMATIZACIÓN
+                        </div>
+
+                        <h1>Automatizaciones <span>inteligentes.</span></h1>
+
+                        <p>
+                            Administra las tareas automáticas de tu ecosistema
+                            de Telegram desde un solo lugar.
+                        </p>
+                    </div>
+
+                    <div class="heading-actions">
+                        <button class="button-secondary" id="automationRefreshButton">
+                            <span>↻</span>
+                            Actualizar
+                        </button>
+                    </div>
+                </section>
+
+
+                <section class="automation-overview">
+
+                    <article class="automation-overview-card">
+                        <span class="automation-overview-icon icon-blue">ϟ</span>
+                        <div>
+                            <span>Automatizaciones disponibles</span>
+                            <strong id="automationTotal">3</strong>
+                        </div>
+                    </article>
+
+                    <article class="automation-overview-card">
+                        <span class="automation-overview-icon icon-green">✓</span>
+                        <div>
+                            <span>Activas</span>
+                            <strong id="automationActive">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="automation-overview-card">
+                        <span class="automation-overview-icon icon-orange">Ⅱ</span>
+                        <div>
+                            <span>Pausadas</span>
+                            <strong id="automationPaused">3</strong>
+                        </div>
+                    </article>
+
+                </section>
+
+
+                <section class="automation-section-heading">
+                    <div>
+                        <h2>Mis automatizaciones</h2>
+                        <p>Activa o pausa cada función de manera independiente.</p>
+                    </div>
+
+                    <span class="period-label">CONTROL INDIVIDUAL</span>
+                </section>
+
+
+                <section
+                    class="automation-list"
+                    id="automationsList"
+                    aria-live="polite"
+                >
+
+                    <div class="automation-loading">
+                        Cargando automatizaciones...
+                    </div>
+
+                </section>
+
+
+                <div class="automation-notice" id="automationNotice" role="status">
+
+                    <span class="automation-notice-icon">ⓘ</span>
+
+                    <div>
+                        <strong>Control independiente</strong>
+                        <p>
+                            Pausar los mensajes automáticos no interrumpe
+                            el registro de entradas y salidas del canal.
+                        </p>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="view-page" id="channelView" data-page="channel">
+
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow">
+                            <span class="eyebrow-line"></span>
+                            ADMINISTRACIÓN DEL CANAL
+                        </div>
+
+                        <h1>Canal <span>principal.</span></h1>
+
+                        <p>
+                            Configura el canal que quieres supervisar
+                            y administra el seguimiento de sus movimientos.
+                        </p>
+                    </div>
+
+                    <div class="heading-actions">
+                        <button class="button-secondary" id="channelRefreshButton">
+                            <span>↻</span>
+                            Actualizar
+                        </button>
+                    </div>
+                </section>
+
+
+                <section class="panel channel-config-panel">
+
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Identificación del canal</h2>
+                            <p>Introduce los datos del canal que deseas monitorizar.</p>
+                        </div>
+
+                        <span class="metric-icon icon-blue">◎</span>
+                    </div>
+
+                    <form id="channelForm" class="channel-form">
+
+                        <div class="channel-field">
+                            <label for="channelId">
+                                ID numérico del canal
+                            </label>
+
+                            <input
+                                id="channelId"
+                                name="telegram_channel_id"
+                                type="text"
+                                inputmode="numeric"
+                                placeholder="-1001234567890"
+                                autocomplete="off"
+                                required
+                            >
+
+                            <small>
+                                Introduce el identificador numérico de Telegram,
+                                normalmente comienza por -100.
+                            </small>
+                        </div>
+
+                        <div class="channel-field">
+                            <label for="channelTitle">
+                                Nombre del canal
+                            </label>
+
+                            <input
+                                id="channelTitle"
+                                name="title"
+                                type="text"
+                                maxlength="255"
+                                placeholder="Ej. Mi canal principal"
+                            >
+
+                            <small>
+                                Nombre descriptivo para identificarlo en el Dashboard.
+                            </small>
+                        </div>
+
+
+                        <label class="channel-checkbox-row">
+
+                            <input
+                                type="checkbox"
+                                id="channelEnabled"
+                                checked
+                            >
+
+                            <span class="channel-checkbox-copy">
+                                <strong>Activar seguimiento al guardar</strong>
+                                <small>
+                                    Permite registrar entradas y salidas
+                                    cuando el Userbot esté conectado.
+                                </small>
+                            </span>
+
+                        </label>
+
+
+                        <div class="channel-form-actions">
+
+                            <button
+                                type="submit"
+                                class="button-primary"
+                                id="channelSaveButton"
+                            >
+                                Guardar configuración
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </section>
+
+
+                <section class="channel-overview-grid">
+
+                    <article class="panel channel-status-panel">
+
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Estado del seguimiento</h2>
+                                <p>Control de recopilación de movimientos.</p>
+                            </div>
+
+                            <span class="metric-icon icon-green">⌁</span>
+                        </div>
+
+                        <div class="channel-status-main">
+
+                            <div class="channel-status-icon">◎</div>
+
+                            <div>
+                                <strong id="channelTrackingStatus">
+                                    Sin configurar
+                                </strong>
+
+                                <span id="channelTrackingDescription">
+                                    Primero debes registrar un canal.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="channel-status-badge" id="channelTrackingBadge">
+                            <span class="status-dot status-neutral"></span>
+                            Sin configurar
+                        </div>
+
+                        <button
+                            class="button-secondary channel-toggle-button"
+                            id="channelTrackingButton"
+                            disabled
+                        >
+                            Activar seguimiento
+                        </button>
+
+                    </article>
+
+
+                    <article class="panel channel-validation-panel">
+
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Validación de Telegram</h2>
+                                <p>Comprobación de acceso al canal.</p>
+                            </div>
+
+                            <span class="metric-icon icon-purple">✓</span>
+                        </div>
+
+                        <div class="channel-validation-state">
+
+                            <span class="validation-icon">ⓘ</span>
+
+                            <div>
+                                <strong id="channelValidationStatus">
+                                    Pendiente
+                                </strong>
+
+                                <span id="channelValidationDescription">
+                                    El acceso se comprobará cuando conectemos
+                                    el Userbot.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="channel-validation-footer">
+                            La cuenta de Telegram debe tener permisos de
+                            administrador para consultar el registro de eventos.
+                        </div>
+
+                    </article>
+
+                </section>
+
+
+                <section class="panel channel-history-panel">
+
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Sincronización histórica</h2>
+                            <p>Recuperación inicial de los movimientos anteriores.</p>
+                        </div>
+
+                        <span class="metric-icon icon-blue">◷</span>
+                    </div>
+
+                    <div class="channel-history-banner">
+
+                        <div class="channel-history-icon">↻</div>
+
+                        <div>
+                            <strong id="channelHistoryStatus">
+                                Pendiente de importación
+                            </strong>
+
+                            <span id="channelHistoryDescription">
+                                Al conectar el Userbot se intentará recuperar
+                                la actividad disponible de las últimas 24 horas.
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <div class="channel-history-grid">
+
+                        <div class="channel-history-item">
+                            <span>Último evento procesado</span>
+                            <strong id="channelLastEvent">0</strong>
+                        </div>
+
+                        <div class="channel-history-item">
+                            <span>Última sincronización</span>
+                            <strong id="channelLastSync">Sin registros</strong>
+                        </div>
+
+                        <div class="channel-history-item">
+                            <span>Estado del recolector</span>
+                            <strong id="channelCollectorStatus">Pendiente</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <div class="channel-notice" id="channelNotice" role="status">
+
+                    <span class="channel-notice-icon">ⓘ</span>
+
+                    <div>
+                        <strong>Configuración pendiente</strong>
+
+                        <p>
+                            Guardar el identificador no valida el acceso
+                            a Telegram. La comprobación real se realizará
+                            al conectar el Userbot.
+                        </p>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ESTADISTICAS: vista independiente, sin datos ficticios -->
+            <section class="view-page" id="statisticsView" data-page="statistics">
+
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow"><span class="eyebrow-line"></span> ANÁLISIS DEL CANAL</div>
+                        <h1>Estadísticas <span>del canal.</span></h1>
+                        <p>Entradas, salidas y evolución de los movimientos registrados por el Userbot.</p>
+                    </div>
+                    <div class="stats-toolbar">
+                        <label class="stats-period-control" for="statisticsPeriod">
+                            Período
+                            <select class="stats-select" id="statisticsPeriod">
+                                <option value="7">7 días</option>
+                                <option value="30">30 días</option>
+                                <option value="90">90 días</option>
+                            </select>
+                        </label>
+                        <button class="button-secondary" type="button" id="statisticsRefreshButton">↻ Actualizar</button>
+                    </div>
+                </section>
+
+                <div class="stats-period-label" id="statsPeriodLabel">Últimos 7 días · UTC</div>
+
+                <section class="stats-metrics" aria-label="Resumen de estadísticas">
+                    <article class="stats-metric">
+                        <div class="stats-metric-head">Entradas <span class="stats-metric-icon">↗</span></div>
+                        <strong class="stats-metric-value" id="statsEntries">—</strong>
+                        <span class="stats-metric-foot" id="statsEntriesCompare">Sin datos reales</span>
+                    </article>
+                    <article class="stats-metric">
+                        <div class="stats-metric-head">Salidas <span class="stats-metric-icon">↙</span></div>
+                        <strong class="stats-metric-value" id="statsExits">—</strong>
+                        <span class="stats-metric-foot" id="statsExitsCompare">Sin datos reales</span>
+                    </article>
+                    <article class="stats-metric">
+                        <div class="stats-metric-head">Balance neto <span class="stats-metric-icon">⌁</span></div>
+                        <strong class="stats-metric-value" id="statsNet">—</strong>
+                        <span class="stats-metric-foot" id="statsNetCompare">Sin datos reales</span>
+                    </article>
+                    <article class="stats-metric">
+                        <div class="stats-metric-head">Movimientos <span class="stats-metric-icon">▥</span></div>
+                        <strong class="stats-metric-value" id="statsTotal">—</strong>
+                        <span class="stats-metric-foot" id="statsTotalCompare">Sin datos reales</span>
+                    </article>
+                </section>
+
+                <section class="panel stats-chart-panel">
+                    <div class="stats-panel-head">
+                        <div><h2>Evolución de entradas y salidas</h2><p>Actividad diaria del canal principal, según los registros disponibles.</p></div>
+                        <div class="stats-legend"><span><i class="stats-legend-entries"></i>Entradas</span><span><i class="stats-legend-exits"></i>Salidas</span></div>
+                    </div>
+                    <div class="stats-chart-scroll" role="region" aria-label="Gráfico de movimientos; desplázate horizontalmente para ver más días" tabindex="0">
+                        <div class="stats-chart" id="statsTrendChart"></div>
+                    </div>
+                    <p class="stats-chart-caption">Las barras representan eventos registrados, no el número total de miembros. Los días se agrupan en UTC.</p>
+                </section>
+
+                <section class="panel stats-info-panel">
+                    <div class="stats-panel-head"><div><h2>Estado de los datos</h2><p>Canal y sincronización del recolector.</p></div></div>
+                    <div class="stats-info-grid">
+                        <div class="stats-info-item"><span>Canal supervisado</span><strong id="statsChannelName">Sin canal</strong></div>
+                        <div class="stats-info-item"><span>Estado del recolector</span><strong id="statsCollectorStatus">Sin conexión</strong></div>
+                        <div class="stats-info-item"><span>Última sincronización</span><strong id="statsLastSync">Sin registros</strong></div>
+                    </div>
+                </section>
+
+                <section class="panel stats-table-panel">
+                    <div class="stats-panel-head"><div><h2>Resumen por día</h2><p>Desglose completo del período seleccionado.</p></div></div>
+                    <div class="stats-table-scroll" role="region" aria-label="Tabla de movimientos diarios" tabindex="0">
+                        <table class="stats-table">
+                            <thead><tr><th scope="col">Día (UTC)</th><th scope="col">Entradas</th><th scope="col">Salidas</th><th scope="col">Balance</th></tr></thead>
+                            <tbody id="statsDailyBody"><tr><td colspan="4" class="stats-table-message">Sin datos reales.</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel stats-events-panel">
+                    <div class="stats-panel-head"><div><h2>Movimientos recientes</h2><p>Hasta 15 entradas o salidas dentro del período seleccionado.</p></div></div>
+                    <div class="stats-table-scroll" role="region" aria-label="Tabla de últimos eventos" tabindex="0">
+                        <table class="stats-table">
+                            <thead><tr><th scope="col">Tipo</th><th scope="col">Miembro</th><th scope="col">Fecha y hora</th></tr></thead>
+                            <tbody id="statsEventsBody"><tr><td colspan="3" class="stats-table-message">Sin datos reales.</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <div class="stats-notice" id="statsNotice" role="status" aria-live="polite">
+                    <span class="stats-notice-mark">ⓘ</span>
+                    <div><strong id="statsNoticeTitle">Vista previa</strong><p id="statsNoticeBody">Aquí aparecerán los datos cuando la Mini App esté autenticada.</p></div>
+                </div>
+            </section>
 
         </div>
 
@@ -524,4 +1218,3 @@
 
 </body>
 </html>
-
